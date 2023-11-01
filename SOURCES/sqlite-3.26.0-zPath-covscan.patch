@@ -1,0 +1,71 @@
+From 75525dbdf9b7ed003e343c42710e8b13f73a7607 Mon Sep 17 00:00:00 2001
+From: Ondrej Dubaj <odubaj@redhat.com>
+Date: Thu, 23 Jan 2020 15:08:13 +0100
+Subject: [PATCH] Fix buffer underflows in the zipfile extension associated
+ with zero-length or NULL filename in the ZIP archive. But report on the
+ mailing list by Yongheng and Rui.
+
+---
+ ext/misc/zipfile.c | 14 +++++++++-----
+ test/zipfile.test  | 13 +++++++++++++
+ 2 files changed, 22 insertions(+), 5 deletions(-)
+
+diff --git a/ext/misc/zipfile.c b/ext/misc/zipfile.c
+index e6141ef..7fd4074 100644
+--- a/ext/misc/zipfile.c
++++ b/ext/misc/zipfile.c
+@@ -1433,8 +1433,8 @@ static int zipfileGetMode(
+ ** identical, ignoring any trailing '/' character in either path.  */
+ static int zipfileComparePath(const char *zA, const char *zB, int nB){
+   int nA = (int)strlen(zA);
+-  if( zA[nA-1]=='/' ) nA--;
+-  if( zB[nB-1]=='/' ) nB--;
++  if( nA>0 && zA[nA-1]=='/' ) nA--;
++  if( nB>0 && zB[nB-1]=='/' ) nB--;
+   if( nA==nB && memcmp(zA, zB, nA)==0 ) return 0;
+   return 1;
+ }
+@@ -1628,11 +1628,15 @@ static int zipfileUpdate(
+       ** '/'. This appears to be required for compatibility with info-zip
+       ** (the unzip command on unix). It does not create directories
+       ** otherwise.  */
+-      if( zPath[nPath-1]!='/' ){
++      if( nPath<=0 || zPath[nPath-1]!='/' ){
+         zFree = sqlite3_mprintf("%s/", zPath);
+-        if( zFree==0 ){ rc = SQLITE_NOMEM; }
+         zPath = (const char*)zFree;
+-        nPath = (int)strlen(zPath);
++        if( zFree==0 ){
++          rc = SQLITE_NOMEM;
++          nPath = 0;
++        }else{
++          nPath = (int)strlen(zPath);
++        }
+       }
+     }
+ 
+diff --git a/test/zipfile.test b/test/zipfile.test
+index e4b8088..9f07c0a 100644
+--- a/test/zipfile.test
++++ b/test/zipfile.test
+@@ -821,4 +821,17 @@ do_execsql_test 14.10 {
+   PRAGMA integrity_check;
+ } {3 ok}
+ 
++# 2019-12-26 More problems in zipfile from the Yongheng and Rui fuzzer
++#
++do_execsql_test 15.10 {
++  DROP TABLE IF EXISTS t1;
++  CREATE VIRTUAL TABLE t1 USING zipfile(null);
++  REPLACE INTO t1 VALUES(null,null,0,null,null,null,null);
++} {}
++do_execsql_test 15.20 {
++  DROP TABLE IF EXISTS t2;
++  CREATE VIRTUAL TABLE t2 USING zipfile(null);
++  REPLACE INTO t2 values(null,null,null,null,null,10,null);
++} {}
++
+ finish_test
+-- 
+2.19.1
+
