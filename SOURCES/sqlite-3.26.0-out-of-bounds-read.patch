@@ -1,0 +1,89 @@
+From eca47c8481b0c2f09a7818ed2bce0ad27b1dae27 Mon Sep 17 00:00:00 2001
+From: Ondrej Dubaj <odubaj@redhat.com>
+Date: Wed, 26 Jun 2019 12:25:10 +0200
+Subject: [PATCH] Fixed out of bounds heap read in function rtreenode()
+
+    Enhance the rtreenode() function of rtree (used for
+    testing) so that it uses the newer sqlite3_str object
+    for better performance and improved error reporting.
+    Test cases added to TH3.
+
+    Resolves: #1723338
+    Version: 3.26.0-4
+---
+ ext/rtree/rtree.c | 35 ++++++++++++++++-------------------
+ 1 file changed, 16 insertions(+), 19 deletions(-)
+
+diff --git a/ext/rtree/rtree.c b/ext/rtree/rtree.c
+index 4b044cb..87d0de0 100644
+--- a/ext/rtree/rtree.c
++++ b/ext/rtree/rtree.c
+@@ -3711,49 +3711,46 @@ rtreeInit_fail:
+ ** <num-dimension>*2 coordinates.
+ */
+ static void rtreenode(sqlite3_context *ctx, int nArg, sqlite3_value **apArg){
+-  char *zText = 0;
+   RtreeNode node;
+   Rtree tree;
+   int ii;
++  int nData;
++  int errCode;
++  sqlite3_str *pOut;
+ 
+   UNUSED_PARAMETER(nArg);
+   memset(&node, 0, sizeof(RtreeNode));
+   memset(&tree, 0, sizeof(Rtree));
+   tree.nDim = (u8)sqlite3_value_int(apArg[0]);
++  if( tree.nDim<1 || tree.nDim>5 ) return;
+   tree.nDim2 = tree.nDim*2;
+   tree.nBytesPerCell = 8 + 8 * tree.nDim;
+   node.zData = (u8 *)sqlite3_value_blob(apArg[1]);
++  nData = sqlite3_value_bytes(apArg[1]);
++  if( nData<4 ) return;
++  if( nData<NCELL(&node)*tree.nBytesPerCell ) return;
+ 
++  pOut = sqlite3_str_new(0);
+   for(ii=0; ii<NCELL(&node); ii++){
+-    char zCell[512];
+-    int nCell = 0;
+     RtreeCell cell;
+     int jj;
+ 
+     nodeGetCell(&tree, &node, ii, &cell);
+-    sqlite3_snprintf(512-nCell,&zCell[nCell],"%lld", cell.iRowid);
+-    nCell = (int)strlen(zCell);
++    if( ii>0 ) sqlite3_str_append(pOut, " ", 1);
++    sqlite3_str_appendf(pOut, "{%lld", cell.iRowid);
+     for(jj=0; jj<tree.nDim2; jj++){
+ #ifndef SQLITE_RTREE_INT_ONLY
+-      sqlite3_snprintf(512-nCell,&zCell[nCell], " %g",
+-                       (double)cell.aCoord[jj].f);
++      sqlite3_str_appendf(pOut, " %g", (double)cell.aCoord[jj].f);
+ #else
+-      sqlite3_snprintf(512-nCell,&zCell[nCell], " %d",
+-                       cell.aCoord[jj].i);
++      sqlite3_str_appendf(pOut, " %d", cell.aCoord[jj].i);
+ #endif
+-      nCell = (int)strlen(zCell);
+-    }
+-
+-    if( zText ){
+-      char *zTextNew = sqlite3_mprintf("%s {%s}", zText, zCell);
+-      sqlite3_free(zText);
+-      zText = zTextNew;
+-    }else{
+-      zText = sqlite3_mprintf("{%s}", zCell);
+     }
++    sqlite3_str_append(pOut, "}", 1);
+   }
+   
+-  sqlite3_result_text(ctx, zText, -1, sqlite3_free);
++  errCode = sqlite3_str_errcode(pOut);
++  sqlite3_result_text(ctx, sqlite3_str_finish(pOut), -1, sqlite3_free);
++  sqlite3_result_error_code(ctx, errCode);
+ }
+ 
+ /* This routine implements an SQL function that returns the "depth" parameter
+-- 
+2.19.1
+
