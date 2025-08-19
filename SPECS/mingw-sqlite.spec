@@ -11,7 +11,7 @@
 
 Name:           mingw-%{name1}
 Version:        %{rpmver}
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        MinGW Windows port of sqlite embeddable SQL database engine
 
 License:        Public Domain
@@ -80,6 +80,25 @@ Patch26: sqlite-3.26.0-CVE-2020-13434.patch
 # Fix for CVE-2020-15358
 # upstream commit: https://www.sqlite.org/src/info/10fa79d00f8091e5
 Patch27: sqlite-3.26.0-CVE-2020-15358.patch
+Patch28: sqlite-3.26.0-CVE-2019-5827.patch
+# Fix for CVE-2019-13750
+Patch29: sqlite-3.26.0-CVE-2019-13750.patch
+# Fix for CVE-2019-13751
+Patch30: sqlite-3.26.0-CVE-2019-13751.patch
+# Fix for CVE-2019-19603
+Patch31: sqlite-3.26.0-CVE-2019-19603.patch
+# Fix for CVE-2020-13435
+Patch34: sqlite-3.26.0-CVE-2020-13435.patch
+# Fix for CVE-2020-35527
+Patch35: sqlite-3.26.0-CVE-2020-35527.patch
+# Fix for CVE-2020-35525
+Patch36: sqlite-3.26.0-CVE-2020-35525.patch
+# Fix for CVE-2022-35737
+Patch37: sqlite-3.26.0-CVE-2022-35737.patch
+# Fix for CVE-2020-24736
+Patch38: sqlite-3.26.0-CVE-2020-24736.patch
+Patch39: sqlite-3.34.1-CVE-2023-7104.patch
+Patch40: sqlite-3.34.1-CVE-2025-6965.patch
 
 #end-of-patches-from-RHEL
 ######################
@@ -203,37 +222,48 @@ This package contains static cross-compiled library
 %prep
 %setup -q -n %{name1}-src-%{realver}
 
-%patch1 -p1
-%patch2 -p1
-%patch3 -p1
-%patch4 -p1
-%patch6 -p1
+%patch -P 1 -p1
+%patch -P 2 -p1
+%patch -P 3 -p1
+%patch -P 4 -p1
+%patch -P 6 -p1
 %ifarch %{ix86}
-%patch7 -p1
+%patch -P 7 -p1
 %endif
-%patch8 -p1
-%patch9 -p1
-%patch10 -p1
-%patch11 -p1
-%patch12 -p1
-%patch13 -p1
-%patch14 -p1
-%patch15 -p1
-%patch16 -p1
-%patch17 -p1
-%patch18 -p1
-%patch19 -p1
-%patch20 -p1
-%patch21 -p1
-%patch22 -p1
-%patch23 -p1
-%patch24 -p1
-%patch25 -p1
-%patch26 -p1
-%patch27 -p1
+%patch -P 8 -p1
+%patch -P 9 -p1
+%patch -P 10 -p1
+%patch -P 11 -p1
+%patch -P 12 -p1
+%patch -P 13 -p1
+%patch -P 14 -p1
+%patch -P 15 -p1
+%patch -P 16 -p1
+%patch -P 17 -p1
+%patch -P 18 -p1
+%patch -P 19 -p1
+%patch -P 20 -p1
+%patch -P 21 -p1
+%patch -P 22 -p1
+%patch -P 23 -p1
+%patch -P 24 -p1
+%patch -P 25 -p1
+%patch -P 26 -p1
+%patch -P 27 -p1
+%patch -P 28 -p1
+%patch -P 29 -p1
+%patch -P 30 -p1
+%patch -P 31 -p1
+%patch -P 34 -p1
+%patch -P 35 -p1
+%patch -P 36 -p1
+%patch -P 37 -p1
+%patch -P 38 -p1
+%patch -P 39 -p1
+%patch -P 40 -p1
 
-%patch1001 -p0 -b .pthread
-%patch1002 -p0 -b .cc
+%patch -P 1001 -p0 -b .pthread
+%patch -P 1002 -p0 -b .cc
 autoreconf -i --force
 
 
@@ -317,6 +347,14 @@ find $RPM_BUILD_ROOT -name "*.la" -delete
 
 
 %changelog
+* Fri Aug 15 2025 Lili Zhu <lizhu@redhat.com> - 3.26.0.0-2
+- Fix CVE-2019-5827 CVE-2019-13750 CVE-2019-13751
+- Fix CVE-2019-19603 CVE-2020-13435 CVE-2020-35527
+- Fix CVE-2020-35525 CVE-2022-35737 CVE-2020-24736
+- Fix CVE-2023-7104
+- Fix CVE-2025-6965
+  Resolves: RHEL-103830
+
 
 * Mon Nov 30 2020 Uri Lublin <uril@redhat.com> - 3.26.0.0-1
 - Rebase to sqlite 3.26.0
