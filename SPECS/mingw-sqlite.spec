@@ -11,7 +11,7 @@
 
 Name:           mingw-%{name1}
 Version:        %{rpmver}
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        MinGW Windows port of sqlite embeddable SQL database engine
 
 License:        Public Domain
@@ -99,6 +99,8 @@ Patch37: sqlite-3.26.0-CVE-2022-35737.patch
 Patch38: sqlite-3.26.0-CVE-2020-24736.patch
 Patch39: sqlite-3.34.1-CVE-2023-7104.patch
 Patch40: sqlite-3.34.1-CVE-2025-6965.patch
+# Fix for CVE-2026-11822 and CVE-2026-11824
+Patch41: sqlite-3.26.0-CVE-2026-11822-CVE-2026-11824.patch
 
 #end-of-patches-from-RHEL
 ######################
@@ -261,6 +263,7 @@ This package contains static cross-compiled library
 %patch -P 38 -p1
 %patch -P 39 -p1
 %patch -P 40 -p1
+%patch -P 41 -p1
 
 %patch -P 1001 -p0 -b .pthread
 %patch -P 1002 -p0 -b .cc
@@ -347,6 +350,10 @@ find $RPM_BUILD_ROOT -name "*.la" -delete
 
 
 %changelog
+* Tue Aug 25 2026 Uri Lublin <uril@redhat.com> - 3.26.0.0-3
+- Fix CVE-2026-11822 CVE-2026-11824
+  Resolves: RHEL-218233
+
 * Fri Aug 15 2025 Lili Zhu <lizhu@redhat.com> - 3.26.0.0-2
 - Fix CVE-2019-5827 CVE-2019-13750 CVE-2019-13751
 - Fix CVE-2019-19603 CVE-2020-13435 CVE-2020-35527
